@@ -32,7 +32,7 @@
   --with-spartan-storage-engine
 
   Once this is done, MySQL will let you create tables with:<br>
-  CREATE TABLE <table name> (...) ENGINE=EXAMPLE;
+  CREATE TABLE <table name> (...) ENGINE=SPARTAN;
 
   The spartan storage engine is set up to use table locks. It
   implements an spartan "SHARE" that is inserted into a hash by table
@@ -44,7 +44,7 @@
   of this file.
 
   @note
-  When you create an EXAMPLE table, the MySQL Server creates a table .frm
+  When you create an spartan table, the MySQL Server creates a table .frm
   (format) file in the database directory, using the table name as the file
   name as is customary with MySQL. No other files are created. To get an idea
   of what occurs, here is an spartan select that would do a scan of an entire
@@ -977,8 +977,8 @@ mysql_declare_plugin(spartan)
 {
   MYSQL_STORAGE_ENGINE_PLUGIN,
   &spartan_storage_engine,
-  "EXAMPLE",
-  "Brian Aker, MySQL AB",
+  "spartan",
+  "freefcw, a fork version",
   "Spartan storage engine",
   PLUGIN_LICENSE_GPL,
   spartan_init_func,                            /* Plugin Init */
