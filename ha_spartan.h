@@ -1,25 +1,11 @@
-/* Copyright (c) 2004, 2012, Oracle and/or its affiliates. All rights reserved.
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
-
 /** @file ha_spartan.h
 
     @brief
-  The ha_spartan engine is a stubbed storage engine for spartan purposes only;
-  it does nothing at this point. Its purpose is to provide a source
-  code illustration of how to begin writing new storage engines; see also
-  /storage/spartan/ha_spartan.cc.
+  The ha_spartan engine is a test storage engine for test purposes only;
+  it comes from the book Expert MySQL, it's purpose for write a example
+  engine for personal test.
+
+  port by freefcw <freefcw@gmail.com>,
 
     @note
   Please read ha_spartan.cc before reading this file.
@@ -36,14 +22,22 @@
 #include "handler.h"                     /* handler */
 #include "my_base.h"                     /* ha_rows */
 
+#include "spartan_data.h"
+#ifdef USE_PRAGMA_INTERFACE
+#pragma interface // gcc class implementation
+#endif
+
 /** @brief
   Spartan_share is a class that will be shared among all open handlers.
-  This spartan implements the minimum of what you will probably need.
 */
 class Spartan_share : public Handler_share {
 public:
   mysql_mutex_t mutex;
   THR_LOCK lock;
+
+  Spartan_data *data_class;
+
+  // method
   Spartan_share();
   ~Spartan_share()
   {
@@ -70,7 +64,7 @@ public:
   /** @brief
     The name that will be used for display purposes.
    */
-  const char *table_type() const { return "EXAMPLE"; }
+  const char *table_type() const { return "SPARTAN"; }
 
   /** @brief
     The name of the index type that will be used for display.

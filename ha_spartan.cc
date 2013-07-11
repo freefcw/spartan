@@ -1,26 +1,11 @@
-/* Copyright (c) 2004, 2012, Oracle and/or its affiliates. All rights reserved.
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; version 2 of the License.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
-
 /**
   @file ha_spartan.cc
 
   @brief
-  The ha_spartan engine is a stubbed storage engine for spartan purposes only;
-  it does nothing at this point. Its purpose is to provide a source
-  code illustration of how to begin writing new storage engines; see also
-  /storage/spartan/ha_spartan.h.
+  The ha_spartan engine is a test storage engine for test purposes only;
+  it comes from the book Expert MySQL, it's purpose for write a example
+  engine for personal test.
+   see also /storage/spartan/ha_spartan.h.
 
   @details
   ha_spartan will let you create/open/delete tables, but
@@ -28,8 +13,7 @@
   be stored in the table). Use this spartan as a template for
   implementing the same functionality in your own storage engine. You
   can enable the spartan storage engine in your build by doing the
-  following during your build process:<br> ./configure
-  --with-spartan-storage-engine
+  following during your build process:<br> cmake -DWITH_SPARTAN_STORAGE_ENGINE=1
 
   Once this is done, MySQL will let you create tables with:<br>
   CREATE TABLE <table name> (...) ENGINE=SPARTAN;
@@ -87,6 +71,9 @@
     -Brian
 */
 
+#define SDE_EXT ".sde"
+#define SDI_EXT ".sdi"
+
 #include "sql_priv.h"
 #include "sql_class.h"           // MYSQL_HANDLERTON_INTERFACE_VERSION
 #include "ha_spartan.h"
@@ -138,7 +125,7 @@ static int spartan_init_func(void *p)
   init_spartan_psi_keys();
 #endif
 
-  spartan_hton= (handlerton *)p;
+  spartan_hton = (handlerton *)p;
   spartan_hton->state=                     SHOW_OPTION_YES;
   spartan_hton->create=                    spartan_create_handler;
   spartan_hton->flags=                     HTON_CAN_RECREATE;
@@ -178,6 +165,8 @@ err:
 }
 
 
+// method
+
 static handler* spartan_create_handler(handlerton *hton,
                                        TABLE_SHARE *table, 
                                        MEM_ROOT *mem_root)
@@ -209,6 +198,8 @@ ha_spartan::ha_spartan(handlerton *hton, TABLE_SHARE *table_arg)
 */
 
 static const char *ha_spartan_exts[] = {
+  SDE_EXT,
+  SDI_EXT,
   NullS
 };
 
@@ -832,7 +823,19 @@ THR_LOCK_DATA **ha_spartan::store_lock(THD *thd,
 int ha_spartan::delete_table(const char *name)
 {
   DBUG_ENTER("ha_spartan::delete_table");
-  /* This is not implemented but we want someone to be able that it works. */
+
+  char name_buff[FN_REFLEN];
+  if (!(share == get_share()))
+      DBUG_RETURN(1);
+  share->data_class->close_table();
+  /*
+   * Call the mysql delete file methd.
+   * Note: the fn_format() method correctly creates a file name from
+   * the name passed into the method.
+   */
+my_delete(fn_format(name_buff, name, "", SDE_EXT,
+              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
+
   DBUG_RETURN(0);
 }
 
@@ -854,6 +857,22 @@ int ha_spartan::delete_table(const char *name)
 int ha_spartan::rename_table(const char * from, const char * to)
 {
   DBUG_ENTER("ha_spartan::rename_table ");
+
+  char data_from[FN_REFLEN];
+  char data_to[FN_REFLEN];
+
+  if (!(share = get_share()))
+      DBUG_RETURN(1);
+  // close the table then copy it then reopen new file.
+  share->data_class->close_table();
+  my_copy(fn_format(data_from, from, "", SDE_EXT,
+              MY_REPLACE_EXT|MY_UNPACK_FILENAME),
+          fn_format(data_to, to, "", SDE_EXT,
+              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
+  share->data_class->open_table(data_to);
+  // Delete the file using MySQL's delte file method.
+  my_delete(data_from, MYF(0));
+
   DBUG_RETURN(HA_ERR_WRONG_COMMAND);
 }
 
@@ -902,10 +921,23 @@ int ha_spartan::create(const char *name, TABLE *table_arg,
                        HA_CREATE_INFO *create_info)
 {
   DBUG_ENTER("ha_spartan::create");
+
+  char name_buff[FN_REFLEN];
+
+  if (!(share = get_share()))
+      DBUG_RETURN(1);
   /*
-    This is not implemented but we want someone to be able to see that it
-    works.
-  */
+   * Call the data class create table method.
+   * Note: the fn_format() method correctly creates a file name from the name
+   * passed into the method.
+   */
+  if (share->data_class->create_table(fn_format(name_buff, name, "", SDE_EXT,
+                  MY_REPLACE_EXT | MY_UNPACK_FILENAME)))
+  {
+      DBUG_PRINT("info", ("hot here 0"));
+      DBUG_RETURN(-1);
+  }
+
   DBUG_RETURN(0);
 }
 
