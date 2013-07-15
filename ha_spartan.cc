@@ -79,6 +79,7 @@
 #include "ha_spartan.h"
 #include "probes_mysql.h"
 #include "sql_plugin.h"
+#include "my_sys.h"
 
 static handler *spartan_create_handler(handlerton *hton,
                                        TABLE_SHARE *table, 
@@ -865,7 +866,12 @@ int ha_spartan::rename_table(const char * from, const char * to)
       DBUG_RETURN(1);
   // close the table then copy it then reopen new file.
   share->data_class->close_table();
-  my_copy(fn_format(data_from, from, "", SDE_EXT,
+//  my_copy(fn_format(data_from, from, "", SDE_EXT,
+//              MY_REPLACE_EXT|MY_UNPACK_FILENAME),
+//          fn_format(data_to, to, "", SDE_EXT,
+//              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
+  
+  my_rename(fn_format(data_from, from, "", SDE_EXT,
               MY_REPLACE_EXT|MY_UNPACK_FILENAME),
           fn_format(data_to, to, "", SDE_EXT,
               MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
