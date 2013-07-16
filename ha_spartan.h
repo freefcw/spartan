@@ -43,6 +43,9 @@ public:
   {
     thr_lock_delete(&lock);
     mysql_mutex_destroy(&mutex);
+    if (data_class != NULL)
+        delete data_class;
+    data_class = NULL;
   }
 };
 

@@ -115,6 +115,7 @@ Spartan_share::Spartan_share()
   thr_lock_init(&lock);
   mysql_mutex_init(ex_key_mutex_Spartan_share_mutex,
                    &mutex, MY_MUTEX_INIT_FAST);
+  data_class = new Spartan_data();
 }
 
 
@@ -287,13 +288,16 @@ static bool spartan_is_supported_system_table(const char *db,
 
 int ha_spartan::open(const char *name, int mode, uint test_if_locked)
 {
-  DBUG_ENTER("ha_spartan::open");
+    DBUG_ENTER("ha_spartan::open");
+    char name_buff[FN_REFLEN];
 
-  if (!(share = get_share()))
-    DBUG_RETURN(1);
-  thr_lock_data_init(&share->lock,&lock,NULL);
+    if (!(share = get_share()))
+        DBUG_RETURN(1);
+    share->data_class->open_table(fn_format(name_buff, name, "", SDE_EXT,
+                MY_REPLACE_EXT|MY_UNPACK_FILENAME));
+    thr_lock_data_init(&share->lock, &lock, NULL);
 
-  DBUG_RETURN(0);
+    DBUG_RETURN(0);
 }
 
 
@@ -825,19 +829,19 @@ int ha_spartan::delete_table(const char *name)
 {
   DBUG_ENTER("ha_spartan::delete_table");
 
-  char name_buff[FN_REFLEN];
-  if (!(share == get_share()))
-      DBUG_RETURN(1);
-  share->data_class->close_table();
-  /*
-   * Call the mysql delete file methd.
-   * Note: the fn_format() method correctly creates a file name from
-   * the name passed into the method.
-   */
-my_delete(fn_format(name_buff, name, "", SDE_EXT,
+    char name_buff[FN_REFLEN];
+    if (!(share == get_share()))
+        DBUG_RETURN(1);
+    share->data_class->close_table();
+    /*
+    * Call the mysql delete file methd.
+    * Note: the fn_format() method correctly creates a file name from
+    * the name passed into the method.
+    */
+    my_delete(fn_format(name_buff, name, "", SDE_EXT,
               MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
 
-  DBUG_RETURN(0);
+    DBUG_RETURN(0);
 }
 
 
@@ -858,26 +862,6 @@ my_delete(fn_format(name_buff, name, "", SDE_EXT,
 int ha_spartan::rename_table(const char * from, const char * to)
 {
   DBUG_ENTER("ha_spartan::rename_table ");
-
-  char data_from[FN_REFLEN];
-  char data_to[FN_REFLEN];
-
-  if (!(share = get_share()))
-      DBUG_RETURN(1);
-  // close the table then copy it then reopen new file.
-  share->data_class->close_table();
-//  my_copy(fn_format(data_from, from, "", SDE_EXT,
-//              MY_REPLACE_EXT|MY_UNPACK_FILENAME),
-//          fn_format(data_to, to, "", SDE_EXT,
-//              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
-  
-  my_rename(fn_format(data_from, from, "", SDE_EXT,
-              MY_REPLACE_EXT|MY_UNPACK_FILENAME),
-          fn_format(data_to, to, "", SDE_EXT,
-              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
-  share->data_class->open_table(data_to);
-  // Delete the file using MySQL's delte file method.
-  my_delete(data_from, MYF(0));
 
   DBUG_RETURN(HA_ERR_WRONG_COMMAND);
 }
@@ -943,6 +927,7 @@ int ha_spartan::create(const char *name, TABLE *table_arg,
       DBUG_PRINT("info", ("hot here 0"));
       DBUG_RETURN(-1);
   }
+  share->data_class->close_table();
 
   DBUG_RETURN(0);
 }
