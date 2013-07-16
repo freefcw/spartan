@@ -78,7 +78,7 @@ long long Spartan_data::update_row(uchar *old_rec, uchar *new_rec, int length, l
     long long cur_pos;
     uchar *cmp_rec;
     int len;
-    //uchar deleted = 0;
+    uchar deleted = 0;
     int i = -1;
     DBUG_ENTER("Spartan_data::update_row");
     if (position == 0)
@@ -117,6 +117,8 @@ long long Spartan_data::update_row(uchar *old_rec, uchar *new_rec, int length, l
          * Note: my_write() returns the uchars written or -1 on error
          */
         my_seek(data_file, pos, MY_SEEK_SET, MYF(0));
+        i = my_write(data_file, &deleted, sizeof(uchar), MYF(0));
+        memcpy(&len, &length, sizeof(int));
         i = my_write(data_file, (uchar *)&len, sizeof(int), MYF(0));
         pos = i;
         i = my_write(data_file, new_rec, sizeof(int), MYF(0));
@@ -263,7 +265,7 @@ int Spartan_data::read_header()
         i = my_read(data_file, (uchar *)&len, sizeof(int), MYF(0));
         memcpy(&number_records, &len, sizeof(int));
         i = my_read(data_file, (uchar *)&len, sizeof(int), MYF(0));
-        // void war
+        // void gcc warnning
         i = i + 1;
     }
     else
@@ -282,7 +284,7 @@ int Spartan_data::write_header()
         i = my_write(data_file, (uchar *)&crashed, sizeof(bool), MYF(0));
         i = my_write(data_file, (uchar *)&number_records, sizeof(int), MYF(0));
         i = my_write(data_file, (uchar *)&number_del_records, sizeof(int), MYF(0));
-        // void war
+        // void gcc warnning
         i = i + 1;
     }
     DBUG_RETURN(0);
