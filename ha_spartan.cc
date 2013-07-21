@@ -861,9 +861,24 @@ int ha_spartan::delete_table(const char *name)
 */
 int ha_spartan::rename_table(const char * from, const char * to)
 {
-  DBUG_ENTER("ha_spartan::rename_table ");
+    DBUG_ENTER("ha_spartan::rename_table ");
 
-  DBUG_RETURN(HA_ERR_WRONG_COMMAND);
+    char data_from[FN_REFLEN];
+    char data_to[FN_REFLEN];
+
+    printf("BEGIN...");
+//    if (!(share = get_share()))
+//        DBUG_RETURN(1);
+    // close the table then copy it then reopen new file.
+ //   share->data_class->close_table();
+    my_rename(fn_format(data_from, from, "", SDE_EXT,
+                MY_REPLACE_EXT|MY_UNPACK_FILENAME),
+            fn_format(data_to, to, "", SDE_EXT,
+                MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
+ //   share->data_class->open_table(data_to);
+    printf("rename");
+
+    DBUG_RETURN(0);
 }
 
 
