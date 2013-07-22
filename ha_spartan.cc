@@ -148,22 +148,23 @@ static int spartan_init_func(void *p)
 
 Spartan_share *ha_spartan::get_share()
 {
-  Spartan_share *tmp_share;
+    Spartan_share *tmp_share;
 
-  DBUG_ENTER("ha_spartan::get_share()");
+    DBUG_ENTER("ha_spartan::get_share()");
 
-  lock_shared_ha_data();
-  if (!(tmp_share= static_cast<Spartan_share*>(get_ha_share_ptr())))
-  {
-    tmp_share= new Spartan_share;
-    if (!tmp_share)
-      goto err;
+    lock_shared_ha_data();
 
-    set_ha_share_ptr(static_cast<Handler_share*>(tmp_share));
-  }
+    if (!(tmp_share = static_cast<Spartan_share*>(get_ha_share_ptr())))
+    {
+        tmp_share = new Spartan_share;
+        if (!tmp_share)
+        goto err;
+
+        set_ha_share_ptr(static_cast<Handler_share*>(tmp_share));
+    }
 err:
-  unlock_shared_ha_data();
-  DBUG_RETURN(tmp_share);
+    unlock_shared_ha_data();
+    DBUG_RETURN(tmp_share);
 }
 
 
@@ -866,17 +867,16 @@ int ha_spartan::rename_table(const char * from, const char * to)
     char data_from[FN_REFLEN];
     char data_to[FN_REFLEN];
 
-    printf("BEGIN...");
-//    if (!(share = get_share()))
-//        DBUG_RETURN(1);
-    // close the table then copy it then reopen new file.
- //   share->data_class->close_table();
-    my_rename(fn_format(data_from, from, "", SDE_EXT,
-                MY_REPLACE_EXT|MY_UNPACK_FILENAME),
-            fn_format(data_to, to, "", SDE_EXT,
-                MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
- //   share->data_class->open_table(data_to);
-    printf("rename");
+    fn_format(data_from, from, "", SDE_EXT,
+                MY_REPLACE_EXT|MY_UNPACK_FILENAME);
+    fn_format(data_to, to, "", SDE_EXT,
+                MY_REPLACE_EXT|MY_UNPACK_FILENAME);
+
+    // my_rename(data_from, data_to, MYF(0));
+    my_copy(data_from, data_to, MYF(0));
+
+    my_delete(data_from, MYF(0));
+
 
     DBUG_RETURN(0);
 }
