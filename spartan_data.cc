@@ -8,7 +8,7 @@ Spartan_data::Spartan_data(void)
     number_records = -1;
     number_del_records = -1;
     header_size = sizeof(bool) + sizeof(int) + sizeof(int);
-    record_header_size = sizeof(uchar) + sizeof(uchar);
+    record_header_size = sizeof(uchar) + sizeof(int);
 }
 
 Spartan_data::~Spartan_data(void)
@@ -297,7 +297,7 @@ long long Spartan_data::cur_position()
 
     DBUG_ENTER("Spartan_data::cur_position");
 
-    pos = my_seek(data_file, 0l, MY_SEEK_SET, MYF(0));
+    pos = my_seek(data_file, 0L, MY_SEEK_CUR, MYF(0));
     if (pos == 0)
         DBUG_RETURN(header_size);
     DBUG_RETURN(pos);
