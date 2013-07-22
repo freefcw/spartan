@@ -42,14 +42,6 @@
   ha_spartan::extra
   ENUM HA_EXTRA_CACHE        Cache record in HA_rrnd()
   ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
-  ha_spartan::rnd_next
   ha_spartan::extra
   ENUM HA_EXTRA_NO_CACHE     End caching of records (def)
   ha_spartan::external_lock
@@ -357,12 +349,15 @@ int ha_spartan::close(void)
 int ha_spartan::write_row(uchar *buf)
 {
   DBUG_ENTER("ha_spartan::write_row");
-  /*
-    Spartan of a successful write_row. We don't store the data
-    anywhere; they are thrown away. A real implementation will
-    probably need to do something with 'buf'. We report a success
-    here, to pretend that the insert was successful.
-  */
+  long long pos;
+  
+  ha_statistic_increment(&SSV::ha_write_count);
+  mysql_mutex_lock(&share->mutex);
+  pos = share->data_class->write_row(buf, table->s->rec_buff_length);
+
+  pos = pos + 1; // unused....
+
+  mysql_mutex_unlock(&share->mutex);
   DBUG_RETURN(0);
 }
 
@@ -536,6 +531,11 @@ int ha_spartan::index_last(uchar *buf)
 int ha_spartan::rnd_init(bool scan)
 {
   DBUG_ENTER("ha_spartan::rnd_init");
+
+  current_position = 0;
+  stats.records = 0;
+  ref_length = sizeof(long long);
+
   DBUG_RETURN(0);
 }
 
@@ -562,13 +562,20 @@ int ha_spartan::rnd_end()
 */
 int ha_spartan::rnd_next(uchar *buf)
 {
-  int rc;
-  DBUG_ENTER("ha_spartan::rnd_next");
-  MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
-                       TRUE);
-  rc= HA_ERR_END_OF_FILE;
-  MYSQL_READ_ROW_DONE(rc);
-  DBUG_RETURN(rc);
+    int rc;
+    DBUG_ENTER("ha_spartan::rnd_next");
+  
+    MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str, TRUE);
+    rc = share->data_class->read_row(buf, table->s->rec_buff_length, current_position);
+
+    if (rc != -1)
+        current_position = (off_t)share->data_class->cur_position();
+    else
+        DBUG_RETURN(HA_ERR_END_OF_FILE);
+    stats.records++;
+    MYSQL_READ_ROW_DONE(rc);
+
+    DBUG_RETURN(rc);
 }
 
 
@@ -596,6 +603,7 @@ int ha_spartan::rnd_next(uchar *buf)
 void ha_spartan::position(const uchar *record)
 {
   DBUG_ENTER("ha_spartan::position");
+  my_store_ptr(ref, ref_length, current_position);
   DBUG_VOID_RETURN;
 }
 
@@ -615,13 +623,15 @@ void ha_spartan::position(const uchar *record)
 */
 int ha_spartan::rnd_pos(uchar *buf, uchar *pos)
 {
-  int rc;
-  DBUG_ENTER("ha_spartan::rnd_pos");
-  MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
-                       TRUE);
-  rc= HA_ERR_WRONG_COMMAND;
-  MYSQL_READ_ROW_DONE(rc);
-  DBUG_RETURN(rc);
+    int rc;
+    DBUG_ENTER("ha_spartan::rnd_pos");
+    MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
+                        TRUE);
+    ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+    current_position = (off_t)my_get_ptr(pos, ref_length);
+    rc = share->data_class->read_row(buf, current_position, -1);
+    MYSQL_READ_ROW_DONE(rc);
+    DBUG_RETURN(rc);
 }
 
 
@@ -666,6 +676,8 @@ int ha_spartan::rnd_pos(uchar *buf, uchar *pos)
 int ha_spartan::info(uint flag)
 {
   DBUG_ENTER("ha_spartan::info");
+  if (stats.records < 2)
+      stats.records = 2;
   DBUG_RETURN(0);
 }
 
@@ -839,8 +851,8 @@ int ha_spartan::delete_table(const char *name)
     * Note: the fn_format() method correctly creates a file name from
     * the name passed into the method.
     */
-    my_delete(fn_format(name_buff, name, "", SDE_EXT,
-              MY_REPLACE_EXT|MY_UNPACK_FILENAME), MYF(0));
+    fn_format(name_buff, name, "", SDE_EXT, MY_REPLACE_EXT|MY_UNPACK_FILENAME);
+    my_delete(name_buff, MYF(0));
 
     DBUG_RETURN(0);
 }

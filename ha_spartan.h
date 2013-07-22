@@ -23,6 +23,7 @@
 #include "my_base.h"                     /* ha_rows */
 
 #include "spartan_data.h"
+
 #ifdef USE_PRAGMA_INTERFACE
 #pragma interface // gcc class implementation
 #endif
@@ -56,6 +57,9 @@ class ha_spartan: public handler
 {
   THR_LOCK_DATA lock;      ///< MySQL lock
   Spartan_share *share;    ///< Shared lock info
+
+  off_t current_position; // current position ion the file during a file scan
+
   Spartan_share *get_share(); ///< Get the share
 
 public:
