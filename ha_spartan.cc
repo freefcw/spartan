@@ -884,10 +884,10 @@ int ha_spartan::rename_table(const char * from, const char * to)
     fn_format(data_to, to, "", SDE_EXT,
                 MY_REPLACE_EXT|MY_UNPACK_FILENAME);
 
-    // my_rename(data_from, data_to, MYF(0));
-    my_copy(data_from, data_to, MYF(0));
+    my_rename(data_from, data_to, MYF(0));
+    // my_copy(data_from, data_to, MYF(0));
 
-    my_delete(data_from, MYF(0));
+    // my_delete(data_from, MYF(0));
 
 
     DBUG_RETURN(0);
