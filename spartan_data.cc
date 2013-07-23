@@ -80,6 +80,7 @@ long long Spartan_data::update_row(uchar *old_rec, uchar *new_rec, int length, l
     int len;
     uchar deleted = 0;
     int i = -1;
+
     DBUG_ENTER("Spartan_data::update_row");
     if (position == 0)
         position = header_size; // move past header
@@ -121,7 +122,7 @@ long long Spartan_data::update_row(uchar *old_rec, uchar *new_rec, int length, l
         memcpy(&len, &length, sizeof(int));
         i = my_write(data_file, (uchar *)&len, sizeof(int), MYF(0));
         pos = i;
-        i = my_write(data_file, new_rec, sizeof(int), MYF(0));
+        i = my_write(data_file, new_rec, length, MYF(0));
     }
     DBUG_RETURN(pos);
 }
