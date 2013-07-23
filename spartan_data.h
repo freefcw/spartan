@@ -14,8 +14,8 @@ public:
     long long write_row(uchar *buf, int length);
     long long update_row(uchar *old_rec, uchar *new_rec,
             int length, long long position);
-    int read_row(uchar *buf, int lenght, long long position);
-    int delete_row(uchar *old_rec, int lenght, long long position);
+    int read_row(uchar *buf, int length, long long position);
+    int delete_row(uchar *old_rec, int length, long long position);
     int close_table();
     long long cur_position();
     int records();
