@@ -14,5 +14,9 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 SET(SPARTAN_PLUGIN_DYNAMIC "ha_spartan")
-SET(SPARTAN_SOURCES ha_spartan.cc spartan_data.cc)
+SET(SPARTAN_SOURCES
+    ha_spartan.cc
+    spartan_data.cc
+    spartan_index.cc
+    )
 MYSQL_ADD_PLUGIN(SPARTAN ${SPARTAN_SOURCES} STORAGE_ENGINE MODULE_ONLY)
