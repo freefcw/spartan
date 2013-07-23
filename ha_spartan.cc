@@ -312,6 +312,7 @@ int ha_spartan::open(const char *name, int mode, uint test_if_locked)
 int ha_spartan::close(void)
 {
   DBUG_ENTER("ha_spartan::close");
+  share->data_class->close_table();
   DBUG_RETURN(0);
 }
 
@@ -323,7 +324,7 @@ int ha_spartan::close(void)
   information to extract the data from the native byte array type.
 
   @details
-  Spartan of this would be:
+  Example of this would be:
   @code
   for (Field **field=table->field ; *field ; field++)
   {
@@ -387,9 +388,14 @@ int ha_spartan::write_row(uchar *buf)
 */
 int ha_spartan::update_row(const uchar *old_data, uchar *new_data)
 {
+    DBUG_ENTER("ha_spartan::update_row");
 
-  DBUG_ENTER("ha_spartan::update_row");
-  DBUG_RETURN(HA_ERR_WRONG_COMMAND);
+    mysql_mutex_lock(&share->mutex);
+    share->data_class->update_row((uchar *)old_data, new_data, table->s->rec_buff_length,
+            current_position - share->data_class->row_size(table->s->rec_buff_length));
+    mysql_mutex_unlock(&share->mutex);
+
+    DBUG_RETURN(0);
 }
 
 
@@ -415,8 +421,22 @@ int ha_spartan::update_row(const uchar *old_data, uchar *new_data)
 
 int ha_spartan::delete_row(const uchar *buf)
 {
-  DBUG_ENTER("ha_spartan::delete_row");
-  DBUG_RETURN(HA_ERR_WRONG_COMMAND);
+    DBUG_ENTER("ha_spartan::delete_row");
+
+    long long pos;
+
+    if (current_position > 0)
+        pos = current_position - share->data_class->row_size(table->s->rec_buff_length);
+    else
+        pos = 0;
+
+    mysql_mutex_lock(&share->mutex);
+
+    share->data_class->delete_row((uchar *)buf, table->s->rec_buff_length, pos);
+
+    mysql_mutex_unlock(&share->mutex);
+    
+    DBUG_RETURN(0);
 }
 
 
@@ -720,7 +740,10 @@ int ha_spartan::extra(enum ha_extra_function operation)
 int ha_spartan::delete_all_rows()
 {
   DBUG_ENTER("ha_spartan::delete_all_rows");
-  DBUG_RETURN(HA_ERR_WRONG_COMMAND);
+  mysql_mutex_lock(&share->mutex);
+  share->data_class->trunc_table();
+  mysql_mutex_unlock(&share->mutex);
+  DBUG_RETURN(0);
 }
 
 
@@ -843,8 +866,7 @@ int ha_spartan::delete_table(const char *name)
   DBUG_ENTER("ha_spartan::delete_table");
 
     char name_buff[FN_REFLEN];
-    if (!(share == get_share()))
-        DBUG_RETURN(1);
+
     share->data_class->close_table();
     /*
     * Call the mysql delete file methd.
@@ -968,7 +990,7 @@ static ulong srv_ulong_var= 0;
 
 const char *enum_var_names[]=
 {
-  "e1", "e2", NullS
+  "partan_test1", "spartan_test2", NullS
 };
 
 TYPELIB enum_var_typelib=
@@ -1027,13 +1049,13 @@ mysql_declare_plugin(spartan)
 {
   MYSQL_STORAGE_ENGINE_PLUGIN,
   &spartan_storage_engine,
-  "spartan",
+  "Spartan",
   "freefcw, a fork version",
-  "Spartan storage engine",
+  "Spartan Storage Engine Plugin",
   PLUGIN_LICENSE_GPL,
   spartan_init_func,                            /* Plugin Init */
   NULL,                                         /* Plugin Deinit */
-  0x0001 /* 0.1 */,
+  0x0010 /* 0.1 */,
   func_status,                                  /* status variables */
   spartan_system_variables,                     /* system variables */
   NULL,                                         /* config options */
