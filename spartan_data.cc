@@ -183,7 +183,7 @@ int Spartan_data::delete_row(uchar *old_rec, int length, long long position)
         i = my_write(data_file, &deleted, sizeof(uchar), MYF(0));
         i = (i > 1) ? 0: 1;
     }
-    DBUG_RETURN(0);
+    DBUG_RETURN(i);
 }
 
 
@@ -210,7 +210,7 @@ int Spartan_data::read_row(uchar *buf, int length, long long position)
          * if not deleted (deleted == 0),read the record length then read the
          * row
          */
-        if (deleted == 0) // 0 == not delted, 1 = deleted
+        if (deleted == 0) // 0 == not deleted, 1 = deleted
         {
             i = my_read(data_file, (uchar *)&rec_len, sizeof(int), MYF(0));
             i = my_read(data_file, buf,
@@ -262,12 +262,14 @@ int Spartan_data::read_header()
     {
         int i;
         my_seek(data_file, 0l, MY_SEEK_SET, MYF(0));
-        i = my_read(data_file, (uchar *)crashed, sizeof(bool), MYF(0));
+        i = my_read(data_file, (uchar *)&crashed, sizeof(bool), MYF(0));
         i = my_read(data_file, (uchar *)&len, sizeof(int), MYF(0));
         memcpy(&number_records, &len, sizeof(int));
         i = my_read(data_file, (uchar *)&len, sizeof(int), MYF(0));
         // void gcc warnning
         i = i + 1;
+
+        memcpy(&number_del_records, &len, sizeof(int));
     }
     else
         my_seek(data_file, header_size, MY_SEEK_SET, MYF(0));
